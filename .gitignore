@@ -1,0 +1,6 @@
+# local env files
+.env*.local
+.env
+/env
+/__pycache__
+data.csv
