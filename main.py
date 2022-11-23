@@ -40,13 +40,13 @@ async def result_data(file: UploadFile = File(...)):
     datafetched = pd.read_csv(data)
     # group data
     df1 = datafetched.groupby('ReturnCode').groups
-    df2 = pd.DataFrame(datafetched.groupby(['ReturnCode','Bin'],as_index=False)['Bin'].agg({'count':'count'}))
+    df2 = pd.DataFrame(datafetched.groupby(['ReturnCode','Bin','ShortId','UniqueId','AccountHolder','RequestTimestamp','ChannelName','Currency','Credit'],as_index=False)['ReturnCode'].agg({'count':'count'}))
 
     keys = tuple(df1.keys())
 
     sumation_return_code = datafetched.pivot_table(index = ['ReturnCode'], aggfunc ='size')
     sumation_return_code = list(sumation_return_code.values)
-
+    print(sumation_return_code)
     result_dict = []
     for i in range(0,len(keys)):
         keys_random = random.randint(0,10000)
