@@ -40,7 +40,7 @@ async def result_data(file: UploadFile = File(...)):
     datafetched = pd.read_csv(data)
     # group data
     df1 = datafetched.groupby('ReturnCode').groups
-    df2 = pd.DataFrame(datafetched.groupby(['ReturnCode','Bin','ShortId','UniqueId','AccountHolder','RequestTimestamp','ChannelName','Currency','Credit'],as_index=False)['ReturnCode'].agg({'count':'count'}))
+    df2 = pd.DataFrame(datafetched.groupby(['ReturnCode','Bin','AccountNumberLast4','UniqueId','AccountHolder','RequestTimestamp','ChannelName','Currency','Credit','ConnectorDetails'],as_index=False)['ReturnCode'].agg({'count':'count'}))
 
     keys = tuple(df1.keys())
 
