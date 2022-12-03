@@ -12,8 +12,15 @@ app = FastAPI(debug=True)
 # routes = ...
 
 # middleware = [Middleware(CORSMiddleware, allow_origins=['*'])]
-
+# @app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
 # app = Starlette(routes=routes, middleware=middleware)
+app.add_middleware(add_process_time_header())
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
