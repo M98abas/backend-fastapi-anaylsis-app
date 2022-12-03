@@ -20,7 +20,7 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     return response
 # app = Starlette(routes=routes, middleware=middleware)
-app.add_middleware(add_process_time_header())
+app.add_middleware(add_process_time_header)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -32,18 +32,6 @@ app.add_middleware(
 @app.get("/")
 async def root():
     return {"message": "Send data to /upload rather then this "}
-
-
-
-
-app.add_middleware(add_process_time_header())
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 @app.post("/uplaod")
@@ -147,16 +135,6 @@ async def result_data(file: UploadFile = File(...)):
 
     # headers = {'Content-Disposition': 'attachment; filename="data.csv"'}
     # return JSONResponse(content=jsonable_encoder(df1.to_json()))
-
-
-app.add_middleware(add_process_time_header())
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 @app.post("/analize")
 async def result_data(file: UploadFile = File(...)):
