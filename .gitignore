@@ -1,7 +1,7 @@
 # local env files
-.env*.local
-.env
-/env
+.venv*.local
+.venv
+/venv
 /__pycache__
 
 data.csv

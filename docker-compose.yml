@@ -1,0 +1,10 @@
+version: '2'
+services:
+  core_api:
+    build: .
+    container_name: 'switch-test-app'
+    ports:
+      - "8000:12000"
+    volumes:
+      - ../backend-fastapi/:/app
+  
