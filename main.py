@@ -1,26 +1,26 @@
 import pandas as pd
 import random
 import ast
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile,Request
 from io import BytesIO
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Response
 from fastapi.responses import JSONResponse
 # import uvicorn
-app = FastAPI(debug=True)
+app = FastAPI()
 
 # routes = ...
 
 # middleware = [Middleware(CORSMiddleware, allow_origins=['*'])]
 # @app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
-    start_time = time.time()
-    response = await call_next(request)
-    process_time = time.time() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
-    return response
-# app = Starlette(routes=routes, middleware=middleware)
-app.add_middleware(add_process_time_header)
+# async def add_process_time_header(request: request, call_next):
+#     start_time = time.time()
+#     response = await call_next(request)
+#     process_time = time.time() - start_time
+#     response.headers["X-Process-Time"] = str(process_time)
+#     return response
+# # app = Starlette(routes=routes, middleware=middleware)
+# app.add_middleware(add_process_time_header)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
