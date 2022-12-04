@@ -29,6 +29,8 @@ app.add_middleware(
     allow_credentials=True,
 )
 
+app = FastAPI()
+
 @app.get("/")
 async def root():
     return {"message": "Send data to /upload rather then this "}
