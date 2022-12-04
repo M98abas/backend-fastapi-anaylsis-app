@@ -4,6 +4,7 @@ import ast
 from fastapi import FastAPI, File, UploadFile,Request
 from io import BytesIO
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi import Response
 from fastapi.responses import JSONResponse
 # import uvicorn
@@ -21,6 +22,7 @@ app = FastAPI()
 #     return response
 # # app = Starlette(routes=routes, middleware=middleware)
 # app.add_middleware(add_process_time_header)
+app.add_middleware(HTTPSRedirectMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
