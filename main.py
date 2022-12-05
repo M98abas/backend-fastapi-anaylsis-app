@@ -3,7 +3,7 @@ import random
 import ast
 from fastapi import FastAPI, File, UploadFile,Request
 from io import BytesIO
-from starlette.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi import Response
 from fastapi.responses import JSONResponse
