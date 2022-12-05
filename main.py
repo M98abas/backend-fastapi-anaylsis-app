@@ -6,8 +6,6 @@ from io import BytesIO
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi import Response
-
-#Coment
 from fastapi.responses import JSONResponse
 # import uvicorn
 app = FastAPI()
@@ -20,13 +18,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
 
 @app.get("/")
 async def root():
