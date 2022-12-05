@@ -22,14 +22,14 @@ app = FastAPI()
 #     return response
 # # app = Starlette(routes=routes, middleware=middleware)
 # app.add_middleware(add_process_time_header)
-app.add_middleware(HTTPSRedirectMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-
-app = FastAPI()
 
 @app.get("/")
 async def root():
