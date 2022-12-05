@@ -3,21 +3,21 @@ import random
 import ast
 from fastapi import FastAPI, File, UploadFile,Request
 from io import BytesIO
-from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi import Response
 from fastapi.responses import JSONResponse
 # import uvicorn
 app = FastAPI()
 
-if settings.BACKEND_CORS_ORIGINS:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+# if settings.BACKEND_CORS_ORIGINS:
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # app.add_middleware(
 #     CORSMiddleware,
 #     allow_origins=["*"],
