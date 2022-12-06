@@ -163,9 +163,9 @@ async def result_data(file: UploadFile = File(...)):
     headers = {'Content-Disposition': 'attachment; filename="data.csv"'}
     return Response(df1.to_csv(), headers=headers, media_type="text/csv")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
+app = CORSMiddleware(
+    app=app,
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
