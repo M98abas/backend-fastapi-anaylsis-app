@@ -8,16 +8,17 @@ from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi import Response
 from fastapi.responses import JSONResponse
 # import uvicorn
-app = FastAPI(debug=True)
+app = FastAPI()
 
 # if settings.BACKEND_CORS_ORIGINS:
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 @app.get("/")
 async def root():
@@ -162,3 +163,10 @@ async def result_data(file: UploadFile = File(...)):
     headers = {'Content-Disposition': 'attachment; filename="data.csv"'}
     return Response(df1.to_csv(), headers=headers, media_type="text/csv")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
