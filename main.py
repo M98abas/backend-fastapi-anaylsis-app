@@ -8,7 +8,7 @@ from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi import Response
 from fastapi.responses import JSONResponse
 # import uvicorn
-app = FastAPI()
+app = FastAPI(debug=True)
 
 # if settings.BACKEND_CORS_ORIGINS:
 app.add_middleware(
