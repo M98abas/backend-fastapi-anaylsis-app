@@ -1,18 +1,22 @@
+import uvicorn
 import pandas as pd
 import random
 import ast
 from fastapi import FastAPI, File, UploadFile,Request
 from io import BytesIO
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware as starMiddle
 from fastapi import Response
 from fastapi.responses import JSONResponse
 # import uvicorn
-app = FastAPI(debug=True)
+app = FastAPI()
 
 # if settings.BACKEND_CORS_ORIGINS:
-app.add_middleware(CORSMiddleware, allow_origins=["*"])
+app.add_middleware(starMiddle, allow_origins=["*"])
 app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -168,3 +172,5 @@ async def result_data(file: UploadFile = File(...)):
     headers = {'Content-Disposition': 'attachment; filename="data.csv"'}
     return Response(df1.to_csv(), headers=headers, media_type="text/csv")
 
+if __name__== '__main__':
+    uvicorn.run(app,reload=True, debug=True)
