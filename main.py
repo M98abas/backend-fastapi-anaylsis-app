@@ -11,6 +11,7 @@ from fastapi import Response
 from fastapi.responses import JSONResponse
 # import uvicorn
 app = FastAPI()
+import json
 
 # if settings.BACKEND_CORS_ORIGINS:
 app.add_middleware(starMiddle, allow_origins=["*"])
@@ -37,11 +38,10 @@ async def root():
 @app.post("/uplaod")
 async def result_data(file: UploadFile = File(...)):
     try:
-            
-        # print(request)
         # Recive file
         key_itratable = 0
         contents = file.file.read()
+        
         # Convert data in the file
         data = BytesIO(contents)
         # Make the function start working rather than to set up without doing anything
@@ -51,7 +51,7 @@ async def result_data(file: UploadFile = File(...)):
         
         for ind,dataFt in datafetched.iterrows():
             dataString = dataFt['ConnectorDetails']
-            # print(dataFt)
+
             # Check if the connector not containe extendedDesc and clearingInstituteName and then add these in this case
             if ((not 'ExtendedDescription' in dataString) and (not 'clearingInstituteName' in dataString)):
                 result = next((item[1] for ind,item in dfCodes.iterrows() if item['code_result'] == dataFt['ReturnCode']),None)
@@ -59,6 +59,7 @@ async def result_data(file: UploadFile = File(...)):
                 dataNew['ExtendedDescription'] = result
                 dataNew['clearingInstituteName'] = "None"
                 dataNew['key'] = key_itratable
+                # dataNew['Amount'] = dataFt["Credit"]
                 dataFt['ConnectorDetails'] = str(dataNew)
                 # dataFt['ConnectorDetails'] += str({'ExtendedDescription':result, 'clearingInstituteName':'None', 'key':key_itratable})
                 key_itratable +=1
@@ -78,7 +79,7 @@ async def result_data(file: UploadFile = File(...)):
         df1 = datafetched.groupby('ReturnCode').groups
 
         
-        print(datafetched['ReturnCode'].count())
+        #print(datafetched['ReturnCode'].count())
 
         df2['RequestTimestamp'] = pd.to_datetime(df2["RequestTimestamp"]).dt.date
 
@@ -94,6 +95,8 @@ async def result_data(file: UploadFile = File(...)):
         ConnectorDetails = pd.DataFrame(ConnectorDetails.groupby(by=['clearingInstituteName','ExtendedDescription','ReturnCode'],as_index=False,dropna=True)['clearingInstituteName'].agg({'count':'count'}))
         ConnectorDetails['count'] = ConnectorDetails.groupby(by=['clearingInstituteName','ReturnCode'])['count'].transform('sum')
         sumation = pd.DataFrame(ConnectorDetails.groupby(by=['ReturnCode'],as_index=False)['count'].agg({'sumation':'sum'}))
+        # amount_sumation = pd.DataFrame(ConnectorDetails.groupby(by=['ReturnCode'],as_index=False)['Credit'].agg({'sumation':'sum'}))
+        # print(amount_sumation)
         ConnectorDetail_without_null = pd.DataFrame(ConnectorDetails[~ConnectorDetails.ExtendedDescription.str.contains("None")])
         ConnectorDetails = ConnectorDetails.to_dict(orient='records')
         ConnectorDetail_without_null = ConnectorDetail_without_null.to_dict(orient='records')
@@ -108,6 +111,10 @@ async def result_data(file: UploadFile = File(...)):
 
         sumation_return_code = datafetched.pivot_table(index = ['ReturnCode'], aggfunc ='size')
         sumation_return_code = list(sumation_return_code.values)
+
+        amount_return_code = datafetched.pivot_table(values=["Credit"], index=['ReturnCode'], aggfunc='sum').astype(float)
+        amount_return_code = list(amount_return_code.values)
+
         # print(sumation_return_code)
         result_dict = []
         for i in range(0,len(keys)):
@@ -116,12 +123,12 @@ async def result_data(file: UploadFile = File(...)):
             code_query_result = dfCodes.query('code_result == @keypalce')
             code_query_result = code_query_result.values[0].tolist()[1]
             bins = df2.query('ReturnCode == @keypalce')
-            result_dict.append(tuple([keys_random,keypalce,code_query_result,sumation_return_code[i],bins]))
-            # print(keypalce)
+            result_dict.append(tuple([keys_random,keypalce,code_query_result,sumation_return_code[i],amount_return_code[i],bins]))
+            print("code_query_result => ",code_query_result)
         # result_dict
         sumation.loc["Total"] = sumation['sumation'].sum()
         # sumation.append(sumation['suma'].sum().rename('Total'))
-        df1 = pd.DataFrame(result_dict,columns=['key','response_code','response_description','count','children'])
+        df1 = pd.DataFrame(result_dict,columns=['key','response_code','response_description','count','total_amount','children'])
         ConnectorDetails = ConnectorDetails.to_json(orient='records')
         sumation = sumation.to_json(orient='records')
         # print(ConnectorDetails,)
@@ -171,6 +178,31 @@ async def result_data(file: UploadFile = File(...)):
     df1 = pd.DataFrame(result_dict,columns=['response_code','response_description','Count'])
     headers = {'Content-Disposition': 'attachment; filename="data.csv"'}
     return Response(df1.to_csv(), headers=headers, media_type="text/csv")
+
+@app.post('/reducing')
+async def extracting_def(file: UploadFile = File(...)):
+    # Recive file
+    contents = file.file.read()
+    # Convert data in the file
+    data = BytesIO(contents)
+    datafetched = pd.read_csv(data)
+    datafetched = datafetched.fillna('null')
+    result = []
+    #print(datafetched)
+    for ind,rows in datafetched.iterrows():
+     #   print(rows['ConnectorDetails'])
+        json_data = json.loads(rows['ConnectorDetails'])
+        if 'AuthCode' in json_data :
+            result.append({'SHORT_ID':rows['ShortId'], 'UNIQUE_ID':rows['UniqueId'],'AUTHH':json_data['AuthCode'],"LAST_4":rows['AccountNumberLast4'], "BIN":rows['Bin']})
+        else:
+            result.append({'SHORT_ID':rows['ShortId'], 'UNIQUE_ID':rows['UniqueId'],'AUTHH':'Null',"LAST_4":rows['AccountNumberLast4'], "BIN":rows['Bin']})
+    
+    
+    return JSONResponse(content={'df':json.dumps(result)})
+
+ #       for authData in ConnectorDetails['AuthCode']:
+  #          row
+
 
 if __name__== '__main__':
     uvicorn.run(app,reload=True, debug=True)
