@@ -27,6 +27,30 @@ app.add_middleware(
 async def root():
     return {"message": "Send data to /upload rather then this "}
 
+@app.post("/bins")
+async def bin_result(file: UploadFile = File(...)):
+    key_itratable = 0
+    contents = file.file.read()
+    
+    # Convert data in the file
+    data = BytesIO(contents)
+    # Make the function start working rather than to set up without doing anything
+    # Read file
+    dfCodes = pd.read_csv("codes.csv")
+    datafetched = pd.read_csv(data)
+    df = datafetched
+
+    df['count'] = datafetched.groupby(['Bin','ReturnCode'])['Bin'].transform('count')
+    # df = df.drop_duplicates(subset=['Bin','ReturnCode'])
+    # print(df)
+    for ind, dataFt in df.iterrows():
+        result = next((item[1] for _, item in dfCodes.iterrows() if item['code_result'] == dataFt['ReturnCode']), None)
+        df.at[ind, 'desc'] = result
+        # Sort by 'ChannelName'
+    df = df.sort_values(by=['Bin', 'ReturnCode'])
+    df = df.to_json(orient='records')
+    return JSONResponse(content={'df': df})
+
 
 @app.post("/uplaod")
 async def result_data(file: UploadFile = File(...)):
@@ -58,7 +82,12 @@ async def result_data(file: UploadFile = File(...)):
         elif 'ExtendedDescription' not in dataString:
             result = next((item[1] for _, item in dfCodes.iterrows() if item['code_result'] == dataFt['ReturnCode']), None)
             dataNew = eval(dataFt['ConnectorDetails'])
-            dataNew['ExtendedDescription'] = result
+            if 'response.acquirerMessage' in dataString:
+                print(dataString)
+                dataDict = json.loads(dataString)
+                dataNew['ExtendedDescription'] = dataDict.get('response.acquirerMessage', 'DefaultMessage')
+            else:
+                dataNew['ExtendedDescription'] = result
             dataNew['key'] = key_itratable
             dataFt['ConnectorDetails'] = str(dataNew)
             key_itratable += 1
@@ -73,8 +102,8 @@ async def result_data(file: UploadFile = File(...)):
 
     df2['RequestTimestamp'] = pd.to_datetime(df2["RequestTimestamp"]).dt.date
 
-    df2['count'] = datafetched.groupby(['ReturnCode','Bin','RequestTimestamp'])['Bin'].transform('count')
-    df2 = df2.drop_duplicates(subset=['ReturnCode','Bin','RequestTimestamp'])
+    df2['count'] = datafetched.groupby(['ReturnCode','Bin','TransactionId','AccountNumberLast4'])['Bin'].transform('count')
+    df2 = df2.drop_duplicates(subset=['ReturnCode','Bin','TransactionId','AccountNumberLast4'])
 
     ConnectorDetails = pd.json_normalize(datafetched['ConnectorDetails'].apply(ast.literal_eval), max_level=1)
     ConnectorDetails = ConnectorDetails[['clearingInstituteName','ExtendedDescription']]
@@ -92,17 +121,17 @@ async def result_data(file: UploadFile = File(...)):
         items = ConnectorDetails[k]
         if items['ExtendedDescription'] == 'None':
             items['ExtendedDescription'] = next((item['ExtendedDescription'] for item in ConnectorDetail_without_null if item['ReturnCode'] == items['ReturnCode']),None)
-            ConnectorDetails[k] = items    
+            ConnectorDetails[k] = items
     ConnectorDetails = pd.DataFrame(ConnectorDetails) 
     sumation = pd.DataFrame(ConnectorDetails.groupby(by=['clearingInstituteName'],as_index=False)['count'].agg({'sumation':'sum'}))
-    keys = tuple(df1.keys())
 
     sumation_return_code = datafetched.pivot_table(index = ['ReturnCode'], aggfunc ='size')
     sumation_return_code = list(sumation_return_code.values)
-
+    # print(datafetched["Credit"])
     amount_return_code = datafetched.pivot_table(values=["Credit"], index=['ReturnCode'], aggfunc='sum').astype(float)
     amount_return_code = list(amount_return_code.values)
 
+    keys = tuple(df1.keys())
     # print(sumation_return_code)
     result_dict = []
     for i in range(0,len(keys)):
@@ -111,19 +140,16 @@ async def result_data(file: UploadFile = File(...)):
         code_query_result = dfCodes.query('code_result == @keypalce')
         code_query_result = code_query_result.values[0].tolist()[1]
         bins = df2.query('ReturnCode == @keypalce')
+        # bins = json.dumps(bins)
         result_dict.append(tuple([keys_random,keypalce,code_query_result,sumation_return_code[i],amount_return_code[i],bins]))
-        # print("code_query_result => ",code_query_result)
     # result_dict
-    sumation.loc["Total"] = sumation['sumation'].sum()
-    # sumation.append(sumation['suma'].sum().rename('Total'))
     df1 = pd.DataFrame(result_dict,columns=['key','response_code','response_description','count','total_amount','children'])
+
+    sumation.loc["Total"] = sumation['sumation'].sum()
     ConnectorDetails = ConnectorDetails.to_json(orient='records')
     sumation = sumation.to_json(orient='records')
-    # print(ConnectorDetails,)
+    df1 = df1.sort_values(by=['count'],ascending=False)
     df =df1.to_json(orient='records')
-    # data = str({"df1":df,"connectorDteails":ConnectorDetails,"sumation":sumation})
-    # data = {df , ConnectorDetails, sumation}
-    # print(dfre)
     return JSONResponse(content={'df':df, 'sumation':sumation,'connector':ConnectorDetails})
     # except:
     #     return JSONResponse(content={"e":"Error"})
@@ -168,8 +194,8 @@ async def result_data(file: UploadFile = File(...)):
         df1 = pd.DataFrame(result_dict,columns=['response_code','response_description','Count'])
         headers = {'Content-Disposition': 'attachment; filename="data.csv"'}
         return Response(df1.to_csv(), headers=headers, media_type="text/csv")
-    except:
-        return JSONResponse(content={"e":"Error"})
+    except Exception as error:
+        return JSONResponse(content={"e":error})
 
 @app.post('/reducing')
 async def extracting_def(file: UploadFile = File(...)):
@@ -184,12 +210,32 @@ async def extracting_def(file: UploadFile = File(...)):
     #print(datafetched)
     for ind, rows in datafetched.iterrows():
         json_data = json.loads(rows['ConnectorDetails'])
-        print(json_data)
+        amount = rows['Credit']
+        environment = ''
+        try:
+            if json_data['clearingInstituteName'] == 'MADA via Postilion':
+                environment = 'Local'
+            elif json_data['clearingInstituteName'] == 'Switch MPGS':
+                environment = 'International'
+        except:
+            environment ='Rejecte - duplicate transaction'
+            
+       # print(json_data)
         try:
             connector_tx_id2 = json_data.get('ConnectorTxID2', '').split('|')[1]
         except:
+            connector_tx_id2 = json_data.get('transaction.receipt', '')
+        else:
             connector_tx_id2 = json_data.get('ConnectorTxID2', '').split('|')[0]
+            w = open('data.txt','a')
+            w.write(str(json_data))
+            w.write('\n')
+            w.close()
+
         auth_code = json_data.get('AuthCode', 'Null')
+        if auth_code == 'Null':
+            auth_code = json_data.get('transaction.authorizationCode', 'Null')
+        
         request_timestamp = rows['RequestTimestamp']
         result.append({
             'SHORT_ID': rows['ShortId'],
@@ -198,6 +244,8 @@ async def extracting_def(file: UploadFile = File(...)):
             'AUTHH': auth_code,
             'RequestTimestamp': request_timestamp,
             'LAST_4': rows['AccountNumberLast4'],
+            "environment":environment,
+            "amount":amount,
             'BIN': rows['Bin']
         })
     return JSONResponse(content={'df': json.dumps(result)})
@@ -225,6 +273,35 @@ async def merchant_data(file:UploadFile = File(...)):
         df.at[ind, 'desc'] = result
         # Sort by 'ChannelName'
     df = df.sort_values(by=['ChannelName', 'ReturnCode'])
+    df = df.to_json(orient='records')
+    return JSONResponse(content={'df': df})
+
+@app.post('/Bins')
+async def merchant_data(file:UploadFile = File(...)):
+    key_itratable = 0
+    contents = file.file.read()
+    
+    # Convert data in the file
+    data = BytesIO(contents)
+    # Make the function start working rather than to set up without doing anything
+    # Read file
+    df_codes = pd.read_csv("codes.csv")
+    df_bins = pd.read_csv("Bins.csv")
+    datafetched = pd.read_csv(data)
+    df = datafetched[['Bin', 'ReturnCode']]
+    print(df_bins)
+    df['count'] = datafetched.groupby(['Bin','ReturnCode'])['ReturnCode'].transform('count')
+    df = df.drop_duplicates(subset=['Bin','ReturnCode'])
+    # print(df)
+    for ind, dataFt in df.iterrows():
+        result_code = next((item[1] for _, item in df_codes.iterrows() if item['code_result'] == dataFt['ReturnCode']), None)
+        result_bin = next((item[0] for _, item in df_bins.iterrows() if item['Start_BIN_Value'] == dataFt['Bin']), "International")
+
+        df.at[ind, 'desc'] = result_code
+        df.at[ind, 'Bank'] = result_bin
+        # print(result_bin)
+        # Sort by 'Bin'
+    df = df.sort_values(by=['Bin', 'ReturnCode'])
     df = df.to_json(orient='records')
     return JSONResponse(content={'df': df})
 
