@@ -10,9 +10,7 @@ pip install -r requierments.txt`
 
 then run : 
 
-`
-uvicorn main:app --reload
-`
+    uvicorn main:app --reload
 
 
 **Contact me if you need any help**

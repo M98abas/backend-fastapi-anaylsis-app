@@ -27,7 +27,7 @@ app.add_middleware(
 async def root():
     return {"message": "Send data to /upload rather then this "}
 
-@app.post("/bins")
+@app.post("/binsChecker")
 async def bin_result(file: UploadFile = File(...)):
     key_itratable = 0
     contents = file.file.read()
@@ -83,7 +83,7 @@ async def result_data(file: UploadFile = File(...)):
             result = next((item[1] for _, item in dfCodes.iterrows() if item['code_result'] == dataFt['ReturnCode']), None)
             dataNew = eval(dataFt['ConnectorDetails'])
             if 'response.acquirerMessage' in dataString:
-                print(dataString)
+                # print(dataString)
                 dataDict = json.loads(dataString)
                 dataNew['ExtendedDescription'] = dataDict.get('response.acquirerMessage', 'DefaultMessage')
             else:
@@ -146,10 +146,12 @@ async def result_data(file: UploadFile = File(...)):
     df1 = pd.DataFrame(result_dict,columns=['key','response_code','response_description','count','total_amount','children'])
 
     sumation.loc["Total"] = sumation['sumation'].sum()
+    ConnectorDetails = ConnectorDetails.sort_values(by=['clearingInstituteName','ReturnCode'])
     ConnectorDetails = ConnectorDetails.to_json(orient='records')
     sumation = sumation.to_json(orient='records')
     df1 = df1.sort_values(by=['count'],ascending=False)
     df =df1.to_json(orient='records')
+    print("Done and sending -->")
     return JSONResponse(content={'df':df, 'sumation':sumation,'connector':ConnectorDetails})
     # except:
     #     return JSONResponse(content={"e":"Error"})
@@ -276,7 +278,7 @@ async def merchant_data(file:UploadFile = File(...)):
     df = df.to_json(orient='records')
     return JSONResponse(content={'df': df})
 
-@app.post('/Bins')
+@app.post('/bins')
 async def merchant_data(file:UploadFile = File(...)):
     key_itratable = 0
     contents = file.file.read()
@@ -289,7 +291,6 @@ async def merchant_data(file:UploadFile = File(...)):
     df_bins = pd.read_csv("Bins.csv")
     datafetched = pd.read_csv(data)
     df = datafetched[['Bin', 'ReturnCode']]
-    print(df_bins)
     df['count'] = datafetched.groupby(['Bin','ReturnCode'])['ReturnCode'].transform('count')
     df = df.drop_duplicates(subset=['Bin','ReturnCode'])
     # print(df)
@@ -301,10 +302,37 @@ async def merchant_data(file:UploadFile = File(...)):
         df.at[ind, 'Bank'] = result_bin
         # print(result_bin)
         # Sort by 'Bin'
-    df = df.sort_values(by=['Bin', 'ReturnCode'])
+    # df = df.drop_duplicates(subset=['Bin','ReturnCode'])
+
+    df = df.sort_values(by=['Bank','Bin','ReturnCode'])
     df = df.to_json(orient='records')
     return JSONResponse(content={'df': df})
 
+# client = AsyncClient()
+@app.post('/account')
+async def account_data(file:UploadFile = File(...)):
+    key_itratable = 0
+    contents = file.file.read()
+    
+    # Convert data in the file
+    data = BytesIO(contents)
+    # Make the function start working rather than to set up without doing anything
+    # Read file
+    df_codes = pd.read_csv("codes.csv")
+    df_bins = pd.read_csv("Bins.csv")
+    datafetched = pd.read_csv(data)
+    df = datafetched[['Bin','AccountNumberLast4']]
+    # print(df)
+    df['count'] = datafetched.groupby(['Bin','AccountNumberLast4'])['AccountNumberLast4'].transform('count')
+    df = df.drop_duplicates(subset=['Bin','AccountNumberLast4'])
+    # print(df)
+    for ind, dataFt in df.iterrows():
+        result_bin = next((item[0] for _, item in df_bins.iterrows() if item['Start_BIN_Value'] == dataFt['Bin']), "International")
+        df.at[ind, 'Bank'] = result_bin
+    # print(df)
+    df = df.sort_values(by=['Bank','Bin','AccountNumberLast4'])
+    df = df.to_json(orient='records')
+    return JSONResponse(content={'df': df})
     
     
 
