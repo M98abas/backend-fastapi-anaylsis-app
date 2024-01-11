@@ -63,9 +63,10 @@ async def result_data(file: UploadFile = File(...)):
     data = BytesIO(contents)
     # Make the function start working rather than to set up without doing anything
     # Read file
+    df_bins = pd.read_csv("Bins.csv")
     dfCodes = pd.read_csv("codes.csv")
     datafetched = pd.read_csv(data)
-    
+  
     for ind, dataFt in datafetched.iterrows():
         dataString = dataFt['ConnectorDetails']
 
@@ -74,7 +75,7 @@ async def result_data(file: UploadFile = File(...)):
             result = next((item[1] for _, item in dfCodes.iterrows() if item['code_result'] == dataFt['ReturnCode']), None)
             dataNew = eval(dataFt['ConnectorDetails'])
             dataNew['ExtendedDescription'] = result
-            dataNew['clearingInstituteName'] = "None"
+            dataNew['clearingInstituteName'] = next(("MADA via Postilion" for _, item in df_bins.iterrows() if item['Start_BIN_Value'] == dataFt['Bin']), "Switch MPGS")
             dataNew['key'] = key_itratable
             dataFt['ConnectorDetails'] = str(dataNew)
             key_itratable += 1
@@ -82,6 +83,8 @@ async def result_data(file: UploadFile = File(...)):
         elif 'ExtendedDescription' not in dataString:
             result = next((item[1] for _, item in dfCodes.iterrows() if item['code_result'] == dataFt['ReturnCode']), None)
             dataNew = eval(dataFt['ConnectorDetails'])
+            dataNew['clearingInstituteName'] = next(("MADA via Postilion" for _, item in df_bins.iterrows() if item['Start_BIN_Value'] == dataFt['Bin']), "Switch MPGS")
+
             if 'response.acquirerMessage' in dataString:
                 # print(dataString)
                 dataDict = json.loads(dataString)
